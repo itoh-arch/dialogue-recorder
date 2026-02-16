@@ -20,7 +20,7 @@ st.set_page_config(page_title="対話収録システム", layout="wide")
 st.markdown("""
     <style>
     .goal-box { background-color: #fff3cd; padding: 12px; border-radius: 8px; font-size: 16px; margin-bottom: 15px; }
-    .utterance-row { padding: 8px; margin: 4px 0; border-radius: 6px; font-size: 20px; line-height: 1.4; }
+    .utterance-row { padding: 8px; margin: 4px 0; border-radius: 6px; font-size: 16px; line-height: 1.2; }
     .speaker-label { font-weight: bold; margin-right: 6px; }
     </style>
     """, unsafe_allow_html=True)
