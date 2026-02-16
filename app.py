@@ -16,27 +16,20 @@ def get_csv_url(url):
 
 st.set_page_config(page_title="対話収録システム", layout="wide")
 
-# --- CSS: 操作パネルの固定とデザイン ---
+# --- CSS: 上部パネルを完全に固定 ---
 st.markdown("""
     <style>
-    /* 上部操作パネルを固定 */
-    .stApp header { z-index: 100; }
-    .fixed-panel {
-        position: fixed;
-        top: 50px;
-        left: 0;
-        width: 100%;
+    /* 操作パネルを固定するためのコンテナ */
+    [data-testid="stVerticalBlock"] > div:first-child {
+        position: sticky;
+        top: 2.8rem;
         background-color: white;
-        z-index: 1000;
-        padding: 10px 20px;
-        border-bottom: 2px solid #ddd;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        z-index: 999;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #ececec;
     }
-    /* 本文がパネルに隠れないように余白を作る */
-    .main-content { margin-top: 250px; }
-    
-    .goal-box { background-color: #fff3cd; padding: 10px; border-radius: 8px; font-size: 15px; margin-bottom: 10px; }
-    .utterance-row { padding: 8px; margin: 4px 0; border-radius: 6px; font-size: 16px; line-height: 1.2; }
+    .goal-box { background-color: #fff3cd; padding: 10px; border-radius: 8px; font-size: 15px; margin-bottom: 10px; border: 1px solid #ffeeba; }
+    .utterance-row { padding: 8px; margin: 4px 0; border-radius: 6px; font-size: 18px; line-height: 1.4; }
     .speaker-label { font-weight: bold; margin-right: 6px; }
     </style>
     """, unsafe_allow_html=True)
@@ -52,7 +45,7 @@ def load_data():
 df = load_data()
 
 if df is not None:
-    # サイドバーはそのまま
+    # 収録ID選択（サイドバー）
     t_id = st.sidebar.selectbox("収録IDを選択", df['dialogue_id'].unique())
     scn = df[df['dialogue_id'] == t_id].sort_values('turn_id').reset_index(drop=True)
     
@@ -63,9 +56,9 @@ if df is not None:
     log_key = f'logs_{t_id}'
     if log_key not in st.session_state: st.session_state[log_key] = []
 
-    # --- 固定操作パネル ---
+    # --- 1. 固定操作パネルエリア ---
+    # このコンテナの中身がCSSで固定されます
     with st.container():
-        # HTMLの構造を使って「浮いたパネル」を模倣
         st.markdown(f"### シナリオ: {t_id}")
         
         goal = scn['goal_description'].iloc[0] if 'goal_description' in scn.columns else "なし"
@@ -75,10 +68,10 @@ if df is not None:
             curr = scn.iloc[idx]
             color = "#1E90FF" if curr['speaker']=="USER" else "#2E8B57"
             
-            # 次の発話者を表示
+            # 次の話者を大きく表示
             st.markdown(f"#### 次: <span style='color:{color};'>{curr['speaker']}</span> (Turn:{int(curr['turn_id'])})", unsafe_allow_html=True)
             
-            # ボタンを横一列に配置
+            # 操作ボタンを横一列に
             c1, c2, c3, c4 = st.columns([1, 1, 0.5, 0.5])
             
             def add_log(spk, tid):
@@ -106,28 +99,33 @@ if df is not None:
                     st.session_state[sk] = len(scn); st.rerun()
         else:
             st.success("✅ 収録完了")
-            col_save, col_retry = st.columns([1, 1])
-            with col_save:
+            c_save, c_retry = st.columns([1, 1])
+            with c_save:
                 if st.button("📤 スプレッドシートに保存", type="primary", use_container_width=True):
                     if st.session_state[log_key]:
                         res = requests.post(GAS_URL, json=st.session_state[log_key], timeout=15)
                         if res.status_code == 200:
-                            st.balloons(); st.success("保存成功！"); st.session_state[log_key] = []
+                            st.balloons(); st.success("保存完了！"); st.session_state[log_key] = []
                         else: st.error("保存失敗")
-            with col_retry:
+            with c_retry:
                 if st.button("最初からやり直す", use_container_width=True):
                     st.session_state[sk] = 0; st.session_state[log_key] = []; st.rerun()
 
-    st.divider()
-
-    # --- シナリオ表示エリア（ここはスクロールする） ---
+    # --- 2. スクロールするシナリオ表示エリア ---
+    st.markdown("---") # 境界線
     u_col = 'utterrancs' if 'utterrancs' in scn.columns else 'utterance'
+    
     for i, r in scn.iterrows():
         is_current = (i == idx)
         color = "#1E90FF" if r['speaker'] == "USER" else "#2E8B57"
         bg = "#f0f2f6" if is_current else "transparent"
         prefix = "👉" if is_current else "&nbsp;&nbsp;"
-        st.markdown(f"<div class='utterance-row' style='background-color: {bg}; color: {color}; border-left: 5px solid {color if is_current else 'transparent'};'>{prefix} <span class='speaker-label'>{int(r['turn_id'])}. [{r['speaker']}]</span> {r[u_col]}</div>", unsafe_allow_html=True)
+        
+        st.markdown(f"""
+            <div class='utterance-row' style='background-color: {bg}; color: {color}; border-left: 5px solid {color if is_current else "transparent"};'>
+                {prefix} <span class='speaker-label'>{int(r['turn_id'])}. [{r['speaker']}]</span> {r[u_col]}
+            </div>
+            """, unsafe_allow_html=True)
 
 else:
     st.error("データ読み込み失敗")
