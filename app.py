@@ -4,7 +4,7 @@ from datetime import datetime
 
 # --- 設定 ---
 # ここにご自身のGoogleスプレッドシートのURLを貼り付けてください
-SHEET_URL = "https://docs.google.com/spreadsheets/d/あなたのシートID/edit#gid=0"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/1Dl1toHnKeAkwD55h5zsrHLkvrp3ml0x8hS0IPMAEJos/edit?usp=sharing"
 # CSV形式で読み込むための変換
 CSV_URL = SHEET_URL.replace("/edit#gid=", "/export?format=csv&gid=")
 
