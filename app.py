@@ -16,21 +16,14 @@ def get_csv_url(url):
 
 st.set_page_config(page_title="対話収録システム", layout="wide")
 
-# --- CSS: 上部パネルを完全に固定 ---
+# CSS: メイン画面のデザイン（フォントサイズなどは維持）
 st.markdown("""
     <style>
-    /* 操作パネルを固定するためのコンテナ */
-    [data-testid="stVerticalBlock"] > div:first-child {
-        position: sticky;
-        top: 2.8rem;
-        background-color: white;
-        z-index: 999;
-        padding-bottom: 20px;
-        border-bottom: 2px solid #ececec;
-    }
-    .goal-box { background-color: #fff3cd; padding: 10px; border-radius: 8px; font-size: 15px; margin-bottom: 10px; border: 1px solid #ffeeba; }
+    .goal-box { background-color: #fff3cd; padding: 12px; border-radius: 8px; font-size: 15px; margin-bottom: 20px; border: 1px solid #ffeeba; }
     .utterance-row { padding: 8px; margin: 4px 0; border-radius: 6px; font-size: 18px; line-height: 1.4; }
     .speaker-label { font-weight: bold; margin-right: 6px; }
+    /* サイドバーの幅を少し広げる（ボタンを見やすくするため） */
+    [data-testid="stSidebar"] { width: 350px !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -45,34 +38,34 @@ def load_data():
 df = load_data()
 
 if df is not None:
-    # 収録ID選択（サイドバー）
-    t_id = st.sidebar.selectbox("収録IDを選択", df['dialogue_id'].unique())
-    scn = df[df['dialogue_id'] == t_id].sort_values('turn_id').reset_index(drop=True)
-    
-    sk = f'idx_{t_id}'
-    if sk not in st.session_state: st.session_state[sk] = 0
-    idx = st.session_state[sk]
-
-    log_key = f'logs_{t_id}'
-    if log_key not in st.session_state: st.session_state[log_key] = []
-
-    # --- 1. 固定操作パネルエリア ---
-    # このコンテナの中身がCSSで固定されます
-    with st.container():
-        st.markdown(f"### シナリオ: {t_id}")
+    # --- サイドバー (左側固定エリア) の構築 ---
+    with st.sidebar:
+        st.title("🎙️ 操作パネル")
         
-        goal = scn['goal_description'].iloc[0] if 'goal_description' in scn.columns else "なし"
-        st.markdown(f"<div class='goal-box'><b>目的:</b> {goal}</div>", unsafe_allow_html=True)
+        # 1. シナリオ選択
+        t_id = st.selectbox("収録IDを選択", df['dialogue_id'].unique())
+        scn = df[df['dialogue_id'] == t_id].sort_values('turn_id').reset_index(drop=True)
+        
+        st.divider()
 
+        # 進行管理用キー
+        sk = f'idx_{t_id}'
+        if sk not in st.session_state: st.session_state[sk] = 0
+        idx = st.session_state[sk]
+
+        log_key = f'logs_{t_id}'
+        if log_key not in st.session_state: st.session_state[log_key] = []
+
+        # 2. 次の話者と操作ボタン
         if idx < len(scn):
             curr = scn.iloc[idx]
             color = "#1E90FF" if curr['speaker']=="USER" else "#2E8B57"
             
-            # 次の話者を大きく表示
-            st.markdown(f"#### 次: <span style='color:{color};'>{curr['speaker']}</span> (Turn:{int(curr['turn_id'])})", unsafe_allow_html=True)
-            
-            # 操作ボタンを横一列に
-            c1, c2, c3, c4 = st.columns([1, 1, 0.5, 0.5])
+            st.markdown(f"### 次: <span style='color:{color};'>{curr['speaker']}</span>", unsafe_allow_html=True)
+            st.write(f"Turn ID: {int(curr['turn_id'])}")
+
+            # 縦に並ぶと押しにくいため、サイドバー内でも2列に配置
+            c1, c2 = st.columns(2)
             
             def add_log(spk, tid):
                 jst = timezone(timedelta(hours=9))
@@ -90,6 +83,9 @@ if df is not None:
             with c2:
                 if st.button("🤖 SYSTEM 終了", use_container_width=True, type="primary" if curr['speaker']=="SYSTEM" else "secondary"):
                     if curr['speaker']=="SYSTEM": add_log("SYSTEM", curr['turn_id'])
+            
+            st.write("") # スペース
+            c3, c4 = st.columns(2)
             with c3:
                 if st.button("↩️ 戻る", use_container_width=True):
                     if st.session_state[log_key]: st.session_state[log_key].pop()
@@ -97,22 +93,25 @@ if df is not None:
             with c4:
                 if st.button("🔄 終了", use_container_width=True):
                     st.session_state[sk] = len(scn); st.rerun()
+        
         else:
             st.success("✅ 収録完了")
-            c_save, c_retry = st.columns([1, 1])
-            with c_save:
-                if st.button("📤 スプレッドシートに保存", type="primary", use_container_width=True):
-                    if st.session_state[log_key]:
-                        res = requests.post(GAS_URL, json=st.session_state[log_key], timeout=15)
-                        if res.status_code == 200:
-                            st.balloons(); st.success("保存完了！"); st.session_state[log_key] = []
-                        else: st.error("保存失敗")
-            with c_retry:
-                if st.button("最初からやり直す", use_container_width=True):
-                    st.session_state[sk] = 0; st.session_state[log_key] = []; st.rerun()
+            if st.button("📤 データを保存", type="primary", use_container_width=True):
+                if st.session_state[log_key]:
+                    res = requests.post(GAS_URL, json=st.session_state[log_key], timeout=15)
+                    if res.status_code == 200:
+                        st.balloons(); st.success("保存完了！"); st.session_state[log_key] = []
+                    else: st.error("保存失敗")
+            
+            if st.button("最初からやり直す", use_container_width=True):
+                st.session_state[sk] = 0; st.session_state[log_key] = []; st.rerun()
 
-    # --- 2. スクロールするシナリオ表示エリア ---
-    st.markdown("---") # 境界線
+    # --- メイン画面 (スクロールするシナリオエリア) ---
+    st.header(f"シナリオ: {t_id}")
+    
+    goal = scn['goal_description'].iloc[0] if 'goal_description' in scn.columns else "なし"
+    st.markdown(f"<div class='goal-box'><b>目的:</b> {goal}</div>", unsafe_allow_html=True)
+
     u_col = 'utterrancs' if 'utterrancs' in scn.columns else 'utterance'
     
     for i, r in scn.iterrows():
