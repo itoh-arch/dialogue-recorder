@@ -5,7 +5,7 @@ import requests
 
 # --- 設定 ---
 # ご共有いただいたスプレッドシートのURL
-SHEET_URL = "https://docs.google.com/spreadsheets/d/1Dl1toHnKeAkwD55h5zsrHLkvrp3ml0x8hS0IPMAEJos/edit#gid=0"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/1Dl1toHnKeAkwD55h5zsrHLkvrp3ml0x8hS0IPMAEJos/edit?gid=1940633540#gid=1940633540"
 # GASのURL（取得済みであればここに貼り付けてください）
 GAS_URL = "ここにGASのデプロイURLを貼り付けてください"
 
