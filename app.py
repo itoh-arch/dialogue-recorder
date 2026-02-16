@@ -5,7 +5,7 @@ import requests
 
 # --- 設定 ---
 SHEET_URL = "https://docs.google.com/spreadsheets/d/1sP0brv-0dIPTwAI39KYuxslTdbZSBqfFGj-RuwMiiFI/edit?gid=664518608#gid=664518608"
-GAS_URL = "https://script.google.com/macros/s/AKfycbwXXRpMvNFRH-YRwgGtg_Wg7hY0zUd4dpBVBVH7fRs1Oba2SxS2J2ULhNAKhUOKiPIv/exec"
+GAS_URL = "https://script.google.com/macros/s/AKfycbwGSaJNCQKKPvNEy-lwk3GkMeY1tePPFgLc8jbH9IqkY7V_iMgSyiXXe0yuuH3MGNBd/exec"
 
 def get_csv_url(url):
     try:
